@@ -1,14 +1,17 @@
 import os
 import bpy
 
-wsplmode = True
+wsplmode = False
+depthmode = True
 
-folder = r"D:\Work\2327"
-path_twodm = os.path.join(folder, "2327_JJJJMMTT_ISTZUS_STATIO_HQ100.2dm")
+folder = r"j:\projekte-5000\5092_Waiblingen_Zipfelbach\Modell-2D\UnRunOff\V02\hq010"
+path_twodm = os.path.join(folder, "system.2dm")
 
 
 if wsplmode:
     path_wspl = os.path.join(folder, "wspl_max.dat")
+if depthmode:
+    path_depth = os.path.join(folder, "DEPTH_last.dat")
 
 verts = []
 edges = []
@@ -18,7 +21,7 @@ for line in open(path_twodm):
     if line.startswith("ND"):
         parts = line.split()
         verts.append([float(n) for n in parts[2:]])
-        if wsplmode:
+        if wsplmode or depthmode:
             verts_wspl.append([float(n) for n in parts[2:]])
     elif line.startswith("E3T"):
         parts = line.split()
@@ -39,8 +42,22 @@ if wsplmode:
             wspl = float(line)
             if wspl == 0:
                 wspl = verts[i][2] - 1
-            
-            verts_wspl[i][2] = wspl        
+
+            verts_wspl[i][2] = wspl
+            i += 1
+        except:
+            pass
+if depthmode:
+    i = 0
+    for line in open(path_depth):
+        try:
+            depth = float(line)
+            if depth == 0:
+                wspl = verts[i][2] - 0.2
+            else:
+                wspl = verts[i][2] + depth
+
+            verts_wspl[i][2] = wspl
             i += 1
         except:
             pass
@@ -71,15 +88,15 @@ for i, v in enumerate(verts):
     verts[i][0] = v[0] - (x_min + x_max) / 2
     verts[i][1] = v[1] - (y_min + y_max) / 2
     verts[i][2] = v[2] - z_min    
-    if wsplmode:
+    if wsplmode or depthmode:
         verts_wspl[i][0] = v[0]
         verts_wspl[i][1] = v[1]
         verts_wspl[i][2] = verts_wspl[i][2] - z_min
 
 
 # Create mesh object
-mesh = bpy.data.meshes.new("Malha")
-obj = bpy.data.objects.new("Objeto", mesh)
+mesh = bpy.data.meshes.new("Mesh")
+obj = bpy.data.objects.new("MeshObject", mesh)
 # Blender 2.8
 bpy.context.collection.objects.link(obj)
 bpy.context.view_layer.objects.active = obj
@@ -88,10 +105,10 @@ mesh = obj.data
 mesh.from_pydata(verts, edges, faces)
 mesh.update()
 
-if wsplmode:
+if wsplmode or depthmode:
     # Create mesh object
-    meshwspl = bpy.data.meshes.new("Malhawspl")
-    objwspl = bpy.data.objects.new("Objetowspl", meshwspl)
+    meshwspl = bpy.data.meshes.new("Wspl")
+    objwspl = bpy.data.objects.new("WsplObject", meshwspl)
     # Blender 2.8
     bpy.context.collection.objects.link(objwspl)
     bpy.context.view_layer.objects.active = objwspl
